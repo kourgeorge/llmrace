@@ -1,7 +1,7 @@
 {
   "name": "llmrace",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Fast.com but for LLMs — a CLI benchmark tool that races LLM providers head-to-head on tokens/sec, time-to-first-token, and total latency.",
   "license": "MIT",
   "bin": {
