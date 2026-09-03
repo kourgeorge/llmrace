@@ -9,7 +9,23 @@ on tokens/sec, time-to-first-token, and total latency.
 npx llmrace --provider groq --model llama-3.3-70b-versatile
 ```
 
-Or, from a local clone:
+## Installing with npm
+
+If you'd rather not type `npx` every time, install it globally:
+
+```bash
+npm install -g llmrace
+llmrace --provider groq --model llama-3.3-70b-versatile
+```
+
+Or add it to a project as a dev dependency:
+
+```bash
+npm install --save-dev llmrace
+npx llmrace --provider groq --model llama-3.3-70b-versatile
+```
+
+Or, from a local clone of this repo:
 
 ```bash
 npm install
