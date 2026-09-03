@@ -49,9 +49,14 @@ Every provider claims to be the fastest. `llmrace` lets you check, on your own p
 
 ## Quick Start
 
+Every provider needs an API key except `local` (Ollama). Groq has a free tier, so it's the fastest way to try llmrace — grab a key at [console.groq.com/keys](https://console.groq.com/keys), then:
+
 ```bash
+export GROQ_API_KEY=your-key-here
 npx llmrace --provider groq --model llama-3.3-70b-versatile
 ```
+
+No key handy yet? Skip straight to the wizard below, or run `npx llmrace --provider local --model llama3` against a local [Ollama](https://ollama.com) install — no key needed.
 
 Race two or more providers on the same prompt:
 

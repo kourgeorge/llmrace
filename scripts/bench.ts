@@ -7,6 +7,8 @@
 
 import "dotenv/config";
 import { parseArgs } from "node:util";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { runRace } from "../src/race/runner";
 import { getSpeedGrade } from "../src/grade";
 import { providers } from "../src/providers/index";
@@ -869,7 +871,27 @@ async function main(): Promise<void> {
   process.exitCode = anyLaneAlwaysFailed ? 1 : 0;
 }
 
-const isMain = import.meta.url === `file://${process.argv[1]}`;
+/**
+ * True when this module was run directly as the CLI entry point (vs. imported,
+ * e.g. by the test suite, which pulls in pure helpers like formatTable/parseLaneSpec).
+ *
+ * A naive `import.meta.url === file://${process.argv[1]}` check breaks under every
+ * real install path: npm's `bin` mechanism always invokes this file through a
+ * symlink (node_modules/.bin/llmrace -> ../llmrace/dist/bench.js). process.argv[1]
+ * is the symlink path the user/npx typed, but import.meta.url is the resolved real
+ * path — they never match, main() silently never runs, and the CLI does nothing at
+ * all (exit 0, no output). Resolving both sides to their real path fixes that.
+ */
+function isMainModule(): boolean {
+  if (!process.argv[1]) return false;
+  try {
+    return realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+}
+
+const isMain = isMainModule();
 if (isMain) {
   main().catch((err) => {
     process.stderr.write(`${err instanceof Error ? err.stack ?? err.message : String(err)}\n`);
