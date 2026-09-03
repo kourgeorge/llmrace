@@ -72,10 +72,60 @@ function padEndVisible(s: string, width: number): string {
   return pad > 0 ? s + " ".repeat(pad) : s;
 }
 
+/**
+ * Truncates to at most `maxVisible` visible (ANSI-stripped) characters,
+ * preserving embedded color codes and appending a reset so a cut mid-styled
+ * segment can't bleed color into whatever gets written after it. No-ops if
+ * the string already fits.
+ */
+function truncateVisible(s: string, maxVisible: number): string {
+  // eslint-disable-next-line no-control-regex -- stripping ANSI SGR codes requires matching ESC
+  const ansi = /\x1b\[[0-9;]*m/g;
+  let visible = 0;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  for (;;) {
+    match = ansi.exec(s);
+    const segEnd = match ? match.index : s.length;
+    const segLen = segEnd - lastIndex;
+    if (visible + segLen >= maxVisible) {
+      const cut = lastIndex + (maxVisible - visible);
+      return `${s.slice(0, cut)}\x1b[0m`;
+    }
+    visible += segLen;
+    if (!match) return s;
+    lastIndex = match.index + match[0].length;
+  }
+}
+
+/**
+ * ANSI "cursor up n lines," or "" when n <= 0. Most real terminals treat an
+ * explicit `\x1b[0A` the same as an omitted parameter — which the CSI spec
+ * defaults to 1, not 0 — so emitting it for n=0 actually moves the cursor up
+ * one line instead of leaving it in place. Whenever a widget block has
+ * exactly one active row (n=0 here), that turns into an extra line of
+ * upward drift on every tick, eventually climbing into whatever was above
+ * the block (a prior finish line, the shell prompt, the typed command).
+ */
+function moveUpSeq(n: number): string {
+  return n > 0 ? `\x1b[${n}A` : "";
+}
+
 const GAUGE_WIDTH = 20;
 /** Bar fills at this rate — just past the "Kachow!" tier onset (500), so the
  * top speed tiers still read as visually "full" rather than pegged forever. */
 const GAUGE_SCALE_TPS = 600;
+
+/** Max chars for a lane's "provider/model" label in the live widget — model
+ * ids can be long (e.g. openrouter's), and an uncapped label is the main way
+ * a widget row overflows a real terminal's width. */
+const MAX_LABEL_CHARS = 28;
+
+/** Caps a lane's provider/model label so widget rows stay a predictable width. */
+function shortLabel(providerId: string, modelId: string): string {
+  const label = `${providerId}/${modelId}`;
+  return label.length > MAX_LABEL_CHARS ? `${label.slice(0, MAX_LABEL_CHARS - 1)}…` : label;
+}
 
 function renderGauge(colorer: ReturnType<typeof colorerFor>, tps: number, tier: number): string {
   const filled = Math.round(Math.min(1, tps / GAUGE_SCALE_TPS) * GAUGE_WIDTH);
@@ -84,27 +134,27 @@ function renderGauge(colorer: ReturnType<typeof colorerFor>, tps: number, tier: 
 
 /**
  * Live speed widget for the wait on a request (a fast.com-style ticking
- * number instead of a plain "please wait"). Two phases:
+ * number instead of a plain "please wait"). Two phases per lane:
  *  - connecting: no token yet — a clock icon sits to the left of the track.
  *  - streaming: once the first chunk arrives, a live tok/s gauge that
  *    updates every chunk, plus a running token count and elapsed clock.
- * For a multi-lane race there's no room for N live gauges on one line, so it
- * shows the fastest lane observed so far — a live leaderboard glance rather
- * than a full readout. No-ops when stderr isn't a TTY (piped output, CI,
- * NO_COLOR) or after the round settles.
+ * Draws one row per still-active lane, redrawing the whole block in place
+ * each tick — a real live leaderboard rather than a single "fastest so far"
+ * line. Rows stay in launch order (no reordering) so the block doesn't jitter
+ * as speeds change. Finished lanes are dropped from the block on the next
+ * start() (the caller prints their permanent result line separately). No-ops
+ * when stderr isn't a TTY (piped output, CI, NO_COLOR).
  */
 class LiveWidget {
   private timer: ReturnType<typeof setInterval> | null = null;
   private startedAt = 0;
   private readonly lanes = new Map<string, LaneState>();
   private readonly single: boolean;
-  private readonly soloLabel: string;
+  /** Rows drawn on the previous tick — needed to clear the right number of lines. */
+  private lastLineCount = 0;
 
   constructor(private readonly configs: RaceConfig[]) {
     this.single = configs.length === 1;
-    this.soloLabel = this.single
-      ? `${configs[0].providerId}/${configs[0].modelId}`
-      : `${configs.length} lanes`;
   }
 
   update(lane: LaneState): void {
@@ -118,35 +168,56 @@ class LiveWidget {
     this.render();
   }
 
-  private fastestLane(): LaneState | undefined {
-    let best: LaneState | undefined;
-    for (const lane of this.lanes.values()) {
-      if (lane.tps !== null && (best === undefined || lane.tps > (best.tps as number))) best = lane;
+  /** Still-running lanes, in original launch order. */
+  private activeLanes(): LaneState[] {
+    const active: LaneState[] = [];
+    for (const config of this.configs) {
+      const lane = this.lanes.get(config.laneId);
+      if (lane && lane.status !== "done" && lane.status !== "error") active.push(lane);
     }
-    return best;
+    return active;
+  }
+
+  private rowFor(lane: LaneState, seconds: string): string {
+    const laneLabel = shortLabel(lane.providerId, lane.modelId);
+    if (lane.tps === null || lane.tokenCount === 0) {
+      const width = 14;
+      const track = "·".repeat(width);
+      return `🕐 ${cErr.cyan(`[${track}]`)}  ${cErr.dim(`racing ${laneLabel}…`)}  ${cErr.dim(`${seconds}s`)}`;
+    }
+    const who = this.single ? "" : `  ${cErr.dim(laneLabel)}`;
+    const grade = getSpeedGrade(lane.tps);
+    const gauge = renderGauge(cErr, lane.tps, grade.tier);
+    const speedLabel = cErr.bold(gradeColor(cErr, grade.tier, `${lane.tps.toFixed(1)} tok/s`));
+    return `${grade.emoji} [${gauge}] ${speedLabel}${who}  ${cErr.dim(`${lane.tokenCount} tok · ${seconds}s`)}`;
   }
 
   private render(): void {
     const elapsedMs = Date.now() - this.startedAt;
     const seconds = (elapsedMs / 1000).toFixed(1);
-    const live = this.single ? this.lanes.get(this.configs[0].laneId) : this.fastestLane();
+    // Hard safety net: even with shortLabel() capping the variable-length part
+    // of a row, a narrow terminal (or double-width emoji glyphs) could still
+    // push a row past the actual column count, causing it to soft-wrap onto a
+    // second physical line — which desyncs the fixed-line-count cursor math
+    // in draw()/stop() and makes the block appear to climb the screen. Capping
+    // every row to the real terminal width guarantees one physical line per
+    // logical row regardless of terminal size.
+    const maxVisible = Math.max(20, (process.stderr.columns ?? 80) - 6);
+    const rows = this.activeLanes().map((lane) => truncateVisible(this.rowFor(lane, seconds), maxVisible));
+    this.draw(rows);
+  }
 
-    if (!live || live.tps === null || live.tokenCount === 0) {
-      const width = 14;
-      const track = "·".repeat(width);
-      process.stderr.write(
-        `\x1b[2K\r🕐 ${cErr.cyan(`[${track}]`)}  ${cErr.dim(`racing ${this.soloLabel}…`)}  ${cErr.dim(`${seconds}s`)}`,
-      );
-      return;
+  /** Redraws the block in place: moves to its top, clears every line, writes the new rows. */
+  private draw(rows: string[]): void {
+    if (!cErr.enabled) return;
+    if (this.lastLineCount > 0) process.stderr.write(`${moveUpSeq(this.lastLineCount - 1)}\r`);
+    const lineCount = Math.max(this.lastLineCount, rows.length);
+    for (let i = 0; i < lineCount; i++) {
+      process.stderr.write(`\x1b[2K${rows[i] ?? ""}`);
+      if (i < lineCount - 1) process.stderr.write("\n");
     }
-
-    const grade = getSpeedGrade(live.tps);
-    const gauge = renderGauge(cErr, live.tps, grade.tier);
-    const speedLabel = cErr.bold(gradeColor(cErr, grade.tier, `${live.tps.toFixed(1)} tok/s`));
-    const who = this.single ? "" : `  ${cErr.dim(`${live.providerId}/${live.modelId}`)}`;
-    process.stderr.write(
-      `\x1b[2K\r${grade.emoji} [${gauge}] ${speedLabel}${who}  ${cErr.dim(`${live.tokenCount} tok · ${seconds}s`)}`,
-    );
+    process.stderr.write("\r");
+    this.lastLineCount = rows.length;
   }
 
   stop(): void {
@@ -154,7 +225,16 @@ class LiveWidget {
       clearInterval(this.timer);
       this.timer = null;
     }
-    if (cErr.enabled) process.stderr.write("\x1b[2K\r");
+    if (cErr.enabled && this.lastLineCount > 0) {
+      const up = moveUpSeq(this.lastLineCount - 1);
+      process.stderr.write(`${up}\r`);
+      for (let i = 0; i < this.lastLineCount; i++) {
+        process.stderr.write("\x1b[2K");
+        if (i < this.lastLineCount - 1) process.stderr.write("\n");
+      }
+      process.stderr.write(`${up}\r`);
+    }
+    this.lastLineCount = 0;
   }
 }
 
