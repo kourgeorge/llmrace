@@ -53,7 +53,7 @@ Every provider needs an API key except `local` (Ollama). Groq has a free tier, s
 
 ```bash
 export GROQ_API_KEY=your-key-here
-npx llmrace --provider groq --model llama-3.3-70b-versatile
+npx llmrace --provider groq --model openai/gpt-oss-120b
 ```
 
 No key handy yet? Skip straight to the wizard below, or run `npx llmrace --provider local --model llama3` against a local [Ollama](https://ollama.com) install — no key needed.
@@ -61,13 +61,13 @@ No key handy yet? Skip straight to the wizard below, or run `npx llmrace --provi
 Race two or more providers on the same prompt:
 
 ```bash
-npx llmrace --race groq:llama-3.3-70b-versatile,openai:gpt-4o-mini
+npx llmrace --race groq:openai/gpt-oss-120b,openai:gpt-4o-mini
 ```
 
 Run it a few times and get median/min/max stats:
 
 ```bash
-npx llmrace --provider groq --model llama-3.3-70b-versatile --runs 5
+npx llmrace --provider groq --model openai/gpt-oss-120b --runs 5
 ```
 
 Or just run it with nothing — an interactive wizard walks you through provider, model, and API key:
@@ -83,7 +83,7 @@ npx llmrace
 
 ```bash
 npm install -g llmrace
-llmrace --provider groq --model llama-3.3-70b-versatile
+llmrace --provider groq --model openai/gpt-oss-120b
 ```
 
 </details>
@@ -93,7 +93,7 @@ llmrace --provider groq --model llama-3.3-70b-versatile
 
 ```bash
 npm install --save-dev llmrace
-npx llmrace --provider groq --model llama-3.3-70b-versatile
+npx llmrace --provider groq --model openai/gpt-oss-120b
 ```
 
 </details>
@@ -105,7 +105,7 @@ npx llmrace --provider groq --model llama-3.3-70b-versatile
 git clone https://github.com/kourgeorge/llmrace.git
 cd llmrace
 npm install
-npm run bench -- --provider groq --model llama-3.3-70b-versatile
+npm run bench -- --provider groq --model openai/gpt-oss-120b
 ```
 
 </details>
@@ -121,7 +121,7 @@ Each provider reads its key from an environment variable named `<PROVIDER>_API_K
 
 ```bash
 export GROQ_API_KEY=sk-your-key-here
-npx llmrace --provider groq --model llama-3.3-70b-versatile
+npx llmrace --provider groq --model openai/gpt-oss-120b
 ```
 
 </details>
@@ -130,7 +130,7 @@ npx llmrace --provider groq --model llama-3.3-70b-versatile
 <summary><b>2. Pass it inline on the command</b> — good for a single command, no shell history</summary>
 
 ```bash
-GROQ_API_KEY=sk-your-key-here npx llmrace --provider groq --model llama-3.3-70b-versatile
+GROQ_API_KEY=sk-your-key-here npx llmrace --provider groq --model openai/gpt-oss-120b
 ```
 
 </details>
@@ -142,7 +142,7 @@ GROQ_API_KEY=sk-your-key-here npx llmrace --provider groq --model llama-3.3-70b-
 cp .env.example .env
 # then edit .env and fill in the key(s) you need, e.g.:
 # GROQ_API_KEY=sk-your-key-here
-npx llmrace --provider groq --model llama-3.3-70b-versatile
+npx llmrace --provider groq --model openai/gpt-oss-120b
 ```
 
 The `.env` file is loaded automatically — no extra flag needed.
@@ -153,7 +153,7 @@ The `.env` file is loaded automatically — no extra flag needed.
 <summary><b>4. Skip env vars entirely</b> — pass the key directly on the command line</summary>
 
 ```bash
-npx llmrace --provider groq --model llama-3.3-70b-versatile --api-key sk-your-key-here
+npx llmrace --provider groq --model openai/gpt-oss-120b --api-key sk-your-key-here
 ```
 
 `--api-key` always overrides the environment variable.
@@ -190,19 +190,19 @@ npx llmrace --help
 
 ```bash
 # Single provider
-npx llmrace --provider groq --model llama-3.3-70b-versatile
+npx llmrace --provider groq --model openai/gpt-oss-120b
 
 # Race several providers at once
-npx llmrace --race groq:llama-3.3-70b-versatile,openai:gpt-4o-mini,anthropic:claude-3-5-haiku-20241022
+npx llmrace --race groq:openai/gpt-oss-120b,openai:gpt-4o-mini,anthropic:claude-3-5-haiku-20241022
 
 # Smooth out noise with repeated runs
-npx llmrace --provider groq --model llama-3.3-70b-versatile --runs 5
+npx llmrace --provider groq --model openai/gpt-oss-120b --runs 5
 
 # A local OpenAI-compatible server (Ollama, LM Studio, llama.cpp...)
 npx llmrace --provider local --base-url http://localhost:11434/v1 --model llama3
 
 # Machine-readable output for scripts and CI
-npx llmrace --provider groq --model llama-3.3-70b-versatile --json
+npx llmrace --provider groq --model openai/gpt-oss-120b --json
 ```
 
 Running `npx llmrace` with no flags in an interactive terminal launches a step-by-step wizard instead.
