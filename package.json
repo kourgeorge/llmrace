@@ -4,6 +4,28 @@
   "version": "0.1.1",
   "description": "Fast.com but for LLMs — a CLI benchmark tool that races LLM providers head-to-head on tokens/sec, time-to-first-token, and total latency.",
   "license": "MIT",
+  "author": "George Kour",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kourgeorge/llmrace.git"
+  },
+  "homepage": "https://github.com/kourgeorge/llmrace#readme",
+  "bugs": {
+    "url": "https://github.com/kourgeorge/llmrace/issues"
+  },
+  "keywords": [
+    "llm",
+    "benchmark",
+    "cli",
+    "latency",
+    "tokens-per-second",
+    "ttft",
+    "openai",
+    "anthropic",
+    "groq",
+    "cerebras",
+    "ollama"
+  ],
   "bin": {
     "llmrace": "dist/bench.js"
   },

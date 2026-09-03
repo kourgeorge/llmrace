@@ -1,7 +1,51 @@
+<div align="center">
+
 # 🏁 llmrace
 
-Fast.com but for LLMs — a CLI benchmark tool that races LLM providers head-to-head
-on tokens/sec, time-to-first-token, and total latency.
+**Fast.com, but for LLMs.**
+Race LLM providers head-to-head on tokens/sec, time-to-first-token, and total latency — right from your terminal.
+
+[![npm version](https://img.shields.io/npm/v/llmrace.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/llmrace)
+[![npm downloads](https://img.shields.io/npm/dm/llmrace.svg?color=cb3837)](https://www.npmjs.com/package/llmrace)
+[![node](https://img.shields.io/node/v/llmrace.svg?color=339933&logo=node.js&logoColor=white)](package.json)
+[![TypeScript](https://img.shields.io/badge/-TypeScript-3178C6?logo=typescript&logoColor=white)](tsconfig.json)
+[![license](https://img.shields.io/npm/l/llmrace.svg?color=blue)](LICENSE)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
+
+</div>
+
+<p align="center">
+  <img src="docs/demo.svg" alt="llmrace racing three providers, then ranking them by speed grade" width="880">
+</p>
+
+<p align="center">
+  <sub>A live fast.com-style gauge while it races, then a ranked table when it's done.</sub>
+</p>
+
+## Why llmrace
+
+Every provider claims to be the fastest. `llmrace` lets you check, on your own prompt, from your own network, in one command — no dashboards, no vendor benchmarks to squint at.
+
+- 🏎️ **Race providers in parallel** — same prompt, same moment, real head-to-head numbers.
+- 📊 **Two throughput numbers, not one** — `stream tok/s` for raw per-token speed, `eff tok/s` (tokens ÷ total time) for a number that's still fair when a provider buffers its response instead of streaming it.
+- 🎯 **Real percentiles, not one lucky run** — `--runs N` reports median/min/max so a single fast (or slow) request doesn't fool you.
+- 🧭 **No-flags wizard** — run `npx llmrace` with nothing else and pick providers, models, and API keys interactively.
+- 🔌 **13 providers out of the box** — OpenAI, Anthropic, Groq, Cerebras, Fireworks, Mistral, OpenRouter, Google, x.ai, z.ai, Meta, Kimi, plus any OpenAI-compatible local server (Ollama, LM Studio, llama.cpp…).
+- 🤖 **Scriptable** — `--json` for CI, dashboards, or your own leaderboard.
+
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Installing](#installing)
+- [Setting Your API Key](#setting-your-api-key)
+- [Usage](#usage)
+- [Options](#options)
+- [Supported Providers](#supported-providers)
+- [Speed Grades](#speed-grades)
+- [Adding a Provider](#adding-a-provider)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Quick Start
 
@@ -9,49 +53,85 @@ on tokens/sec, time-to-first-token, and total latency.
 npx llmrace --provider groq --model llama-3.3-70b-versatile
 ```
 
-## Installing with npm
+Race two or more providers on the same prompt:
 
-If you'd rather not type `npx` every time, install it globally:
+```bash
+npx llmrace --race groq:llama-3.3-70b-versatile,openai:gpt-4o-mini
+```
+
+Run it a few times and get median/min/max stats:
+
+```bash
+npx llmrace --provider groq --model llama-3.3-70b-versatile --runs 5
+```
+
+Or just run it with nothing — an interactive wizard walks you through provider, model, and API key:
+
+```bash
+npx llmrace
+```
+
+## Installing
+
+<details>
+<summary><b>Global install</b> — if you'd rather not type <code>npx</code> every time</summary>
 
 ```bash
 npm install -g llmrace
 llmrace --provider groq --model llama-3.3-70b-versatile
 ```
 
-Or add it to a project as a dev dependency:
+</details>
+
+<details>
+<summary><b>Project dev dependency</b></summary>
 
 ```bash
 npm install --save-dev llmrace
 npx llmrace --provider groq --model llama-3.3-70b-versatile
 ```
 
-Or, from a local clone of this repo:
+</details>
+
+<details>
+<summary><b>From a local clone</b></summary>
 
 ```bash
+git clone https://github.com/kourgeorge/llmrace.git
+cd llmrace
 npm install
 npm run bench -- --provider groq --model llama-3.3-70b-versatile
 ```
 
+</details>
+
+Requires Node.js 18+.
+
 ## Setting Your API Key
 
-Each provider reads its key from an environment variable named
-`<PROVIDER>_API_KEY` (e.g. `GROQ_API_KEY`, `OPENAI_API_KEY`). Pick whichever
-of the three ways below fits your workflow:
+Each provider reads its key from an environment variable named `<PROVIDER>_API_KEY` (e.g. `GROQ_API_KEY`, `OPENAI_API_KEY`). Pick whichever of these fits your workflow:
 
-**1. Export it in your shell (good for one-off testing)**
+<details open>
+<summary><b>1. Export it in your shell</b> — good for one-off testing</summary>
 
 ```bash
 export GROQ_API_KEY=sk-your-key-here
 npx llmrace --provider groq --model llama-3.3-70b-versatile
 ```
 
-**2. Pass it inline on the command (good for a single command, no shell history)**
+</details>
+
+<details>
+<summary><b>2. Pass it inline on the command</b> — good for a single command, no shell history</summary>
 
 ```bash
 GROQ_API_KEY=sk-your-key-here npx llmrace --provider groq --model llama-3.3-70b-versatile
 ```
 
-**3. Put it in a `.env` file (good for repeated local use)**
+</details>
+
+<details>
+<summary><b>3. Put it in a <code>.env</code> file</b> — good for repeated local use</summary>
 
 ```bash
 cp .env.example .env
@@ -62,17 +142,23 @@ npx llmrace --provider groq --model llama-3.3-70b-versatile
 
 The `.env` file is loaded automatically — no extra flag needed.
 
-**Or skip env vars entirely and pass the key directly:**
+</details>
+
+<details>
+<summary><b>4. Skip env vars entirely</b> — pass the key directly on the command line</summary>
 
 ```bash
 npx llmrace --provider groq --model llama-3.3-70b-versatile --api-key sk-your-key-here
 ```
 
-`--api-key` always overrides the environment variable. The `local` provider
-(Ollama, LM Studio, llama.cpp, etc.) doesn't need a key at all — it just needs
-`--base-url`.
+`--api-key` always overrides the environment variable.
 
-Available env var names, one per provider:
+</details>
+
+The `local` provider (Ollama, LM Studio, llama.cpp, etc.) doesn't need a key at all — it just needs `--base-url`.
+
+<details>
+<summary>All env var names</summary>
 
 ```
 OPENAI_API_KEY
@@ -89,33 +175,38 @@ META_API_KEY
 KIMI_API_KEY
 ```
 
+</details>
+
 ## Usage
 
 ```bash
 npx llmrace --help
 ```
 
-Race two or more providers on the same prompt:
-
 ```bash
-npx llmrace --race groq:llama-3.3-70b-versatile,openai:gpt-4o-mini
-```
+# Single provider
+npx llmrace --provider groq --model llama-3.3-70b-versatile
 
-Run it a few times and get median/min/max stats:
+# Race several providers at once
+npx llmrace --race groq:llama-3.3-70b-versatile,openai:gpt-4o-mini,anthropic:claude-3-5-haiku-20241022
 
-```bash
+# Smooth out noise with repeated runs
 npx llmrace --provider groq --model llama-3.3-70b-versatile --runs 5
+
+# A local OpenAI-compatible server (Ollama, LM Studio, llama.cpp...)
+npx llmrace --provider local --base-url http://localhost:11434/v1 --model llama3
+
+# Machine-readable output for scripts and CI
+npx llmrace --provider groq --model llama-3.3-70b-versatile --json
 ```
 
-Supported providers: OpenAI, Anthropic, Groq, Cerebras, Fireworks AI, Mistral,
-OpenRouter, Google (Gemini), x.ai, z.ai, Meta, Kimi (Moonshot AI), and Local
-(Ollama, LM Studio, llama.cpp, or any OpenAI-compatible server).
+Running `npx llmrace` with no flags in an interactive terminal launches a step-by-step wizard instead.
 
 ## Options
 
 | Flag | Description |
 | --- | --- |
-| `-p, --provider <id>` | Provider id for a single run (see supported providers above, or run `--list`) |
+| `-p, --provider <id>` | Provider id for a single run (see [supported providers](#supported-providers), or run `--list`) |
 | `-m, --model <id>` | Model id for a single run |
 | `--base-url <url>` | Required for provider `local` — the OpenAI-compatible endpoint to hit |
 | `--api-key <key>` | Overrides the `<PROVIDER>_API_KEY` env var |
@@ -128,8 +219,35 @@ OpenRouter, Google (Gemini), x.ai, z.ai, Meta, Kimi (Moonshot AI), and Local
 | `--list` | List known provider ids and exit |
 | `-h, --help` | Show help |
 
-Running `npx llmrace` with no flags in an interactive terminal launches a
-step-by-step wizard instead.
+## Supported Providers
+
+| Provider | id |
+| --- | --- |
+| OpenAI | `openai` |
+| Anthropic | `anthropic` |
+| Groq | `groq` |
+| Cerebras | `cerebras` |
+| Fireworks AI | `fireworks` |
+| Mistral | `mistral` |
+| OpenRouter | `openrouter` |
+| Google (Gemini) | `google` |
+| x.ai | `xai` |
+| z.ai | `zai` |
+| Meta | `meta` |
+| Kimi (Moonshot AI) | `kimi` |
+| Local (Ollama, LM Studio, llama.cpp, or any OpenAI-compatible server) | `local` |
+
+## Speed Grades
+
+Every result gets a grade, calibrated to real-world provider speeds:
+
+| | Grade | Tokens/sec |
+| --- | --- | --- |
+| 🏎️ | ![Kachow!](https://img.shields.io/badge/-Kachow!-fbbf24) | ≥ 500 |
+| ⚡ | ![Ludicrous Speed](https://img.shields.io/badge/-Ludicrous_Speed-a78bfa) | 200 – 499 |
+| 🚀 | ![Warp Drive](https://img.shields.io/badge/-Warp_Drive-34d399) | 100 – 199 |
+| 🏃 | ![Cruising](https://img.shields.io/badge/-Cruising-60a5fa) | 50 – 99 |
+| 🐌 | ![Rush Hour](https://img.shields.io/badge/-Rush_Hour-94a3b8) | < 50 |
 
 ## Adding a Provider
 
@@ -143,6 +261,10 @@ step-by-step wizard instead.
 npm test
 ```
 
+## Contributing
+
+Issues and PRs are welcome — new provider adapters especially. Please add or update tests for anything you change (`npm test`) and run `npm run lint` before opening a PR.
+
 ## License
 
-MIT
+MIT © [George Kour](https://github.com/kourgeorge)
