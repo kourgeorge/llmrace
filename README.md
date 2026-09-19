@@ -3,7 +3,7 @@
 # 🏁 llmrace
 
 **Speedtest.net, but for LLMs.**
-Benchmark how fast a single model actually responds — tokens/sec, time-to-first-token, and total latency — right from your terminal. Want to compare providers too? Race them head-to-head with one extra flag.
+Benchmark how fast a model actually responds — tokens/sec, time-to-first-token, and total latency — right from your terminal.
 
 [![npm version](https://img.shields.io/npm/v/llmrace.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/llmrace)
 [![npm downloads](https://img.shields.io/npm/dm/llmrace.svg?color=cb3837)](https://www.npmjs.com/package/llmrace)
@@ -14,24 +14,33 @@ Benchmark how fast a single model actually responds — tokens/sec, time-to-firs
 
 </div>
 
-<p align="center">
-  <img src="docs/demo.svg" alt="llmrace racing three providers, then ranking them by speed grade" width="880">
-</p>
+## Quick Start
+
+Two commands. That's the whole tool.
+
+Groq has a free tier, so it's the fastest way to try this — grab a key at [console.groq.com/keys](https://console.groq.com/keys):
+
+```bash
+export GROQ_API_KEY=your-key-here
+
+npx llmrace --provider groq --model openai/gpt-oss-120b            # 1. one quick test
+npx llmrace --provider groq --model openai/gpt-oss-120b --runs 5   # 2. 5 runs → median/min/max
+```
+
+Run #1 gives you a single reading. Run #2 repeats it and reports the median, min, and max — so one lucky (or unlucky) request doesn't fool you.
+
+No key yet, or you'd rather pick interactively? Run `npx llmrace` with nothing else and a wizard walks you through provider, model, and API key.
 
 <p align="center">
-  <sub>A live speedtest-style gauge while it runs, then a result table when it's done. (Shown here racing three providers — testing one model looks the same, just a single gauge.)</sub>
+  <img src="docs/demo.svg" alt="llmrace running one model five times and reporting median, min, and max tokens/sec, TTFT, and total time" width="880">
 </p>
 
-## Why llmrace
-
-Every provider claims to be the fastest. `llmrace` lets you check, on your own model, your own prompt, your own network, in one command — no dashboards, no vendor benchmarks to squint at.
-
-- 🎯 **Real percentiles, not one lucky run** — `--runs N` reports median/min/max so a single fast (or slow) request doesn't fool you.
-- 📊 **Two throughput numbers, not one** — `stream tok/s` for raw per-token speed, `eff tok/s` (tokens ÷ total time) for a number that's still fair when a provider buffers its response instead of streaming it.
-- 🧭 **No-flags wizard** — run `npx llmrace` with nothing else and pick a provider, model, and API key interactively.
+- 🎯 **Real percentiles, not one lucky run** — `--runs N` reports median/min/max.
+- 📊 **Two throughput numbers** — `stream tok/s` for raw per-token speed, `eff tok/s` (tokens ÷ total time) for a number that's still fair when a provider buffers its response instead of streaming it.
 - 🔌 **13 providers out of the box** — OpenAI, Anthropic, Groq, Cerebras, Fireworks, Mistral, OpenRouter, Google, x.ai, z.ai, Meta, Kimi, plus any OpenAI-compatible local server (Ollama, LM Studio, llama.cpp…).
-- 🏎️ **Head-to-head races, when you want one** — add `--race` to test several provider:model pairs on the same prompt, at the same moment.
 - 🤖 **Scriptable** — `--json` for CI, dashboards, or your own leaderboard.
+
+Want to compare providers instead of testing one? That's optional — see [Racing Providers](#racing-providers-optional).
 
 ## Table of Contents
 
@@ -40,41 +49,13 @@ Every provider claims to be the fastest. `llmrace` lets you check, on your own m
 - [Setting Your API Key](#setting-your-api-key)
 - [Usage](#usage)
 - [Options](#options)
+- [Racing Providers (Optional)](#racing-providers-optional)
 - [Supported Providers](#supported-providers)
 - [Speed Grades](#speed-grades)
 - [Adding a Provider](#adding-a-provider)
 - [Testing](#testing)
 - [Contributing](#contributing)
 - [License](#license)
-
-## Quick Start
-
-Every provider needs an API key except `local` (Ollama). Groq has a free tier, so it's the fastest way to try llmrace — grab a key at [console.groq.com/keys](https://console.groq.com/keys), then:
-
-```bash
-export GROQ_API_KEY=your-key-here
-npx llmrace --provider groq --model openai/gpt-oss-120b
-```
-
-No key handy yet? Skip straight to the wizard below, or run `npx llmrace --provider local --model llama3` against a local [Ollama](https://ollama.com) install — no key needed.
-
-Run it a few times to smooth out noise and get median/min/max stats instead of one lucky (or unlucky) request:
-
-```bash
-npx llmrace --provider groq --model openai/gpt-oss-120b --runs 5
-```
-
-Or just run it with nothing — an interactive wizard walks you through provider, model, and API key:
-
-```bash
-npx llmrace
-```
-
-Want to compare providers instead of testing just one? Add `--race` with a comma-separated `provider:model` list, and they'll run in parallel on the same prompt:
-
-```bash
-npx llmrace --race groq:openai/gpt-oss-120b,openai:gpt-4o-mini
-```
 
 ## Installing
 
@@ -200,9 +181,6 @@ npx llmrace --provider local --base-url http://localhost:11434/v1 --model llama3
 
 # Machine-readable output for scripts and CI
 npx llmrace --provider groq --model openai/gpt-oss-120b --json
-
-# Optional: race several providers against each other at once
-npx llmrace --race groq:openai/gpt-oss-120b,openai:gpt-4o-mini,anthropic:claude-3-5-haiku-20241022
 ```
 
 Running `npx llmrace` with no flags in an interactive terminal launches a step-by-step wizard instead.
@@ -223,6 +201,16 @@ Running `npx llmrace` with no flags in an interactive terminal launches a step-b
 | `--timeout <ms>` | Abort if no result after this many ms (default `120000`) |
 | `--list` | List known provider ids and exit |
 | `-h, --help` | Show help |
+
+## Racing Providers (Optional)
+
+Want to compare providers head-to-head instead of testing one model? Add `--race` with a comma-separated `provider:model` list, and they'll run in parallel on the same prompt at the same moment:
+
+```bash
+npx llmrace --race groq:openai/gpt-oss-120b,openai:gpt-4o-mini,anthropic:claude-3-5-haiku-20241022
+```
+
+Results are ranked by `eff tok/s` (tokens ÷ total time), since that number stays comparable even when one provider buffers its response instead of streaming it.
 
 ## Supported Providers
 
