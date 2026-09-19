@@ -51,7 +51,6 @@ Want to compare providers instead of testing one? That's optional — see [Racin
 - [Options](#options)
 - [Racing Providers (Optional)](#racing-providers-optional)
 - [Supported Providers](#supported-providers)
-- [Speed Grades](#speed-grades)
 - [Adding a Provider](#adding-a-provider)
 - [Testing](#testing)
 - [Contributing](#contributing)
@@ -229,18 +228,6 @@ Results are ranked by `eff tok/s` (tokens ÷ total time), since that number stay
 | Meta | `meta` |
 | Kimi (Moonshot AI) | `kimi` |
 | Local (Ollama, LM Studio, llama.cpp, or any OpenAI-compatible server) | `local` |
-
-## Speed Grades
-
-Every result gets a grade, calibrated to real-world provider speeds:
-
-| | Grade | Tokens/sec |
-| --- | --- | --- |
-| 🏎️ | ![Kachow!](https://img.shields.io/badge/-Kachow!-fbbf24) | ≥ 500 |
-| ⚡ | ![Ludicrous Speed](https://img.shields.io/badge/-Ludicrous_Speed-a78bfa) | 200 – 499 |
-| 🚀 | ![Warp Drive](https://img.shields.io/badge/-Warp_Drive-34d399) | 100 – 199 |
-| 🏃 | ![Cruising](https://img.shields.io/badge/-Cruising-60a5fa) | 50 – 99 |
-| 🐌 | ![Rush Hour](https://img.shields.io/badge/-Rush_Hour-94a3b8) | < 50 |
 
 ## Adding a Provider
 

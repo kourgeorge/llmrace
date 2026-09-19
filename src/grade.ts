@@ -16,14 +16,16 @@ export interface SpeedGrade {
   tier: number;
   /** CSS-friendly color for the grade badge. */
   color: string;
+  /** Plain-English tok/s range for this tier, e.g. "≥500 tok/s". */
+  rangeLabel: string;
 }
 
 const GRADES: readonly SpeedGrade[] = [
-  { label: "Kachow!",        emoji: "🏎️", tier: 1, color: "#fbbf24" },
-  { label: "Ludicrous Speed", emoji: "⚡",  tier: 2, color: "#a78bfa" },
-  { label: "Warp Drive",      emoji: "🚀", tier: 3, color: "#34d399" },
-  { label: "Cruising",        emoji: "🏃", tier: 4, color: "#60a5fa" },
-  { label: "Rush Hour",       emoji: "🐌", tier: 5, color: "#94a3b8" },
+  { label: "Kachow!",        emoji: "🏎️", tier: 1, color: "#fbbf24", rangeLabel: "≥500 tok/s" },
+  { label: "Ludicrous Speed", emoji: "⚡",  tier: 2, color: "#a78bfa", rangeLabel: "200–499 tok/s" },
+  { label: "Warp Drive",      emoji: "🚀", tier: 3, color: "#34d399", rangeLabel: "100–199 tok/s" },
+  { label: "Cruising",        emoji: "🏃", tier: 4, color: "#60a5fa", rangeLabel: "50–99 tok/s" },
+  { label: "Rush Hour",       emoji: "🐌", tier: 5, color: "#94a3b8", rangeLabel: "<50 tok/s" },
 ] as const;
 
 const THRESHOLDS = [500, 200, 100, 50] as const;

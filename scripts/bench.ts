@@ -135,6 +135,17 @@ function renderGauge(colorer: ReturnType<typeof colorerFor>, tps: number, tier: 
 }
 
 /**
+ * Bar + plain-English tok/s range for a finished result, e.g.
+ * "[██████████████░░░░░░]  ≥500 tok/s" — shows where the number falls
+ * against real-world provider speeds instead of naming a tier.
+ */
+function speedIndicator(colorer: ReturnType<typeof colorerFor>, tps: number | null): string {
+  if (tps === null) return "";
+  const grade = getSpeedGrade(tps);
+  return `  [${renderGauge(colorer, tps, grade.tier)}]  ${colorer.dim(grade.rangeLabel)}`;
+}
+
+/**
  * Live speed widget for the wait on a request (a fast.com-style ticking
  * number instead of a plain "please wait"). Two phases per lane:
  *  - connecting: no token yet — a clock icon sits to the left of the track.
@@ -450,18 +461,16 @@ export function median(values: number[]): number | null {
 /** Human-readable block for a single-lane run. */
 function formatSingle(result: RaceResult): string {
   const buffered = isBuffered(result);
-  const grade = result.tps !== null ? getSpeedGrade(result.tps) : null;
   const lines = [c.bold(`🏁 ${result.providerId}/${result.modelId}`)];
   if (result.error) {
     lines.push(c.red(`  error    ${result.error}`));
   }
   lines.push(`  ${c.dim(label("TTFT"))}${formatMs(result.ttft)}`);
   lines.push(
-    `  ${c.dim(label("stream tok/s"))}${formatTps(result.tps)}${grade ? `  ${grade.emoji} ${gradeColor(c, grade.tier, grade.label)}` : ""}${buffered ? c.yellow("  ⚠ buffered") : ""}`,
+    `  ${c.dim(label("stream tok/s"))}${formatTps(result.tps)}${speedIndicator(c, result.tps)}${buffered ? c.yellow("  ⚠ buffered") : ""}`,
   );
-  lines.push(
-    `  ${c.dim(label("eff tok/s"))}${formatTps(effectiveTps(result))}  ${c.dim("(tokens ÷ total time — reliable either way)")}`,
-  );
+  const effTps = effectiveTps(result);
+  lines.push(`  ${c.dim(label("eff tok/s"))}${formatTps(effTps)}${speedIndicator(c, effTps)}`);
   lines.push(`  ${c.dim(label("total"))}${formatMs(result.ttlt)}`);
   lines.push(`  ${c.dim(label("tokens"))}${result.tokenCount}`);
   if (buffered) {
@@ -569,20 +578,16 @@ function bufferedSuffix(agg: LaneAggregate): string {
 
 /** Human-readable aggregate block for a single lane run over multiple --runs. */
 function formatSingleAggregate(agg: LaneAggregate): string {
-  const grade = agg.tps.median !== null ? getSpeedGrade(agg.tps.median) : null;
   const fullSuccess = agg.successCount === agg.runs;
   const lines = [c.bold(`🏁 ${agg.providerId}/${agg.modelId}  (${agg.runs} runs)`)];
   lines.push(
     `  ${c.dim(label("TTFT"))}median ${formatMs(agg.ttft.median)}${c.dim(formatRange(agg.ttft, (n) => `${Math.round(n)} ms`))}`,
   );
   lines.push(
-    `  ${c.dim(label("stream tok/s"))}median ${formatTps(agg.tps.median)}${grade ? `  ${grade.emoji} ${gradeColor(c, grade.tier, grade.label)}` : ""}${c.dim(formatRange(agg.tps, (n) => n.toFixed(1)))}${bufferedSuffix(agg)}`,
+    `  ${c.dim(label("stream tok/s"))}median ${formatTps(agg.tps.median)}${speedIndicator(c, agg.tps.median)}${c.dim(formatRange(agg.tps, (n) => n.toFixed(1)))}${bufferedSuffix(agg)}`,
   );
   lines.push(
-    `  ${c.dim(label("eff tok/s"))}median ${formatTps(agg.effTps.median)}${c.dim(formatRange(agg.effTps, (n) => n.toFixed(1)))}  ${c.dim("(tokens ÷ total time — reliable either way)")}`,
-  );
-  lines.push(
-    `  ${c.dim(label("total"))}median ${formatMs(agg.ttlt.median)}${c.dim(formatRange(agg.ttlt, (n) => `${Math.round(n)} ms`))}`,
+    `  ${c.dim(label("eff tok/s"))}median ${formatTps(agg.effTps.median)}${speedIndicator(c, agg.effTps.median)}${c.dim(formatRange(agg.effTps, (n) => n.toFixed(1)))}`,
   );
   lines.push(
     `  ${c.dim(label("success"))}${fullSuccess ? c.green(`${agg.successCount}/${agg.runs} runs`) : c.red(`${agg.successCount}/${agg.runs} runs`)}`,
