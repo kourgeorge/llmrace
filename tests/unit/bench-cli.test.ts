@@ -9,6 +9,7 @@ import {
   median,
   aggregateLane,
   formatAggregateTable,
+  disambiguateLaneIds,
 } from "../../scripts/bench";
 import type { RaceResult } from "../../src/race/types";
 
@@ -38,6 +39,29 @@ describe("parseLaneSpec", () => {
   it("throws when either side is empty", () => {
     expect(() => parseLaneSpec(":model")).toThrow();
     expect(() => parseLaneSpec("provider:")).toThrow();
+  });
+});
+
+describe("disambiguateLaneIds", () => {
+  function lane(providerId: string, modelId: string) {
+    return { providerId, modelId, laneId: `${providerId}:${modelId}`, apiKey: "k" };
+  }
+
+  it("leaves distinct provider:model pairs untouched", () => {
+    const lanes = [lane("groq", "a"), lane("openai", "b")];
+    expect(disambiguateLaneIds(lanes).map((l) => l.laneId)).toEqual(["groq:a", "openai:b"]);
+  });
+
+  it("suffixes repeats of the same provider:model so every laneId stays unique", () => {
+    const lanes = [lane("groq", "a"), lane("groq", "a"), lane("groq", "a")];
+    const ids = disambiguateLaneIds(lanes).map((l) => l.laneId);
+    expect(ids).toEqual(["groq:a", "groq:a#2", "groq:a#3"]);
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  it("only disambiguates the pairs that actually repeat", () => {
+    const lanes = [lane("groq", "a"), lane("openai", "b"), lane("groq", "a")];
+    expect(disambiguateLaneIds(lanes).map((l) => l.laneId)).toEqual(["groq:a", "openai:b", "groq:a#2"]);
   });
 });
 

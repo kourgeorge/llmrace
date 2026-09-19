@@ -311,6 +311,7 @@ export function parseLaneSpec(raw: string): LaneSpec {
 }
 
 export { resolveApiKey };
+export { disambiguateLaneIds };
 
 interface ResolvedLane extends LaneSpec {
   laneId: string;
@@ -346,6 +347,24 @@ function resolveLane(spec: LaneSpec, baseUrlFlag: string | undefined, apiKeyFlag
     baseUrl: isLocal ? baseUrlFlag : undefined,
     apiKey,
   };
+}
+
+/**
+ * A race that repeats the same provider:model pair (e.g. to sanity-check
+ * variance) would otherwise give every occurrence the same laneId. Lanes are
+ * tracked in maps keyed by laneId, so the second "finish" for that id gets
+ * silently dropped as a duplicate and the race never reaches onAllDone —
+ * the process hangs. Suffix repeats with #2, #3, ... to keep every laneId
+ * unique; the first occurrence is left as-is so the common no-duplicates
+ * case is unaffected.
+ */
+function disambiguateLaneIds(lanes: ResolvedLane[]): ResolvedLane[] {
+  const seen = new Map<string, number>();
+  return lanes.map((lane) => {
+    const count = (seen.get(lane.laneId) ?? 0) + 1;
+    seen.set(lane.laneId, count);
+    return count === 1 ? lane : { ...lane, laneId: `${lane.laneId}#${count}` };
+  });
 }
 
 function runRaceAsync(configs: RaceConfig[], prompt: string, timeoutMs: number): Promise<RaceResult[]> {
@@ -804,6 +823,7 @@ async function main(): Promise<void> {
     process.exitCode = 1;
     return;
   }
+  lanes = disambiguateLaneIds(lanes);
 
   const configs: RaceConfig[] = lanes.map((lane) => ({
     laneId: lane.laneId,
