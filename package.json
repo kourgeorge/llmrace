@@ -2,7 +2,7 @@
   "name": "llmrace",
   "type": "module",
   "version": "0.1.1",
-  "description": "Fast.com but for LLMs — a CLI benchmark tool that races LLM providers head-to-head on tokens/sec, time-to-first-token, and total latency.",
+  "description": "Speedtest.net for LLMs — a CLI tool that benchmarks a single model's tokens/sec, time-to-first-token, and total latency, with optional head-to-head races between providers.",
   "license": "MIT",
   "author": "George Kour",
   "repository": {

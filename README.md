@@ -2,8 +2,8 @@
 
 # 🏁 llmrace
 
-**Fast.com, but for LLMs.**
-Race LLM providers head-to-head on tokens/sec, time-to-first-token, and total latency — right from your terminal.
+**Speedtest.net, but for LLMs.**
+Benchmark how fast a single model actually responds — tokens/sec, time-to-first-token, and total latency — right from your terminal. Want to compare providers too? Race them head-to-head with one extra flag.
 
 [![npm version](https://img.shields.io/npm/v/llmrace.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/llmrace)
 [![npm downloads](https://img.shields.io/npm/dm/llmrace.svg?color=cb3837)](https://www.npmjs.com/package/llmrace)
@@ -19,18 +19,18 @@ Race LLM providers head-to-head on tokens/sec, time-to-first-token, and total la
 </p>
 
 <p align="center">
-  <sub>A live fast.com-style gauge while it races, then a ranked table when it's done.</sub>
+  <sub>A live speedtest-style gauge while it runs, then a result table when it's done. (Shown here racing three providers — testing one model looks the same, just a single gauge.)</sub>
 </p>
 
 ## Why llmrace
 
-Every provider claims to be the fastest. `llmrace` lets you check, on your own prompt, from your own network, in one command — no dashboards, no vendor benchmarks to squint at.
+Every provider claims to be the fastest. `llmrace` lets you check, on your own model, your own prompt, your own network, in one command — no dashboards, no vendor benchmarks to squint at.
 
-- 🏎️ **Race providers in parallel** — same prompt, same moment, real head-to-head numbers.
-- 📊 **Two throughput numbers, not one** — `stream tok/s` for raw per-token speed, `eff tok/s` (tokens ÷ total time) for a number that's still fair when a provider buffers its response instead of streaming it.
 - 🎯 **Real percentiles, not one lucky run** — `--runs N` reports median/min/max so a single fast (or slow) request doesn't fool you.
-- 🧭 **No-flags wizard** — run `npx llmrace` with nothing else and pick providers, models, and API keys interactively.
+- 📊 **Two throughput numbers, not one** — `stream tok/s` for raw per-token speed, `eff tok/s` (tokens ÷ total time) for a number that's still fair when a provider buffers its response instead of streaming it.
+- 🧭 **No-flags wizard** — run `npx llmrace` with nothing else and pick a provider, model, and API key interactively.
 - 🔌 **13 providers out of the box** — OpenAI, Anthropic, Groq, Cerebras, Fireworks, Mistral, OpenRouter, Google, x.ai, z.ai, Meta, Kimi, plus any OpenAI-compatible local server (Ollama, LM Studio, llama.cpp…).
+- 🏎️ **Head-to-head races, when you want one** — add `--race` to test several provider:model pairs on the same prompt, at the same moment.
 - 🤖 **Scriptable** — `--json` for CI, dashboards, or your own leaderboard.
 
 ## Table of Contents
@@ -58,13 +58,7 @@ npx llmrace --provider groq --model openai/gpt-oss-120b
 
 No key handy yet? Skip straight to the wizard below, or run `npx llmrace --provider local --model llama3` against a local [Ollama](https://ollama.com) install — no key needed.
 
-Race two or more providers on the same prompt:
-
-```bash
-npx llmrace --race groq:openai/gpt-oss-120b,openai:gpt-4o-mini
-```
-
-Run it a few times and get median/min/max stats:
+Run it a few times to smooth out noise and get median/min/max stats instead of one lucky (or unlucky) request:
 
 ```bash
 npx llmrace --provider groq --model openai/gpt-oss-120b --runs 5
@@ -74,6 +68,12 @@ Or just run it with nothing — an interactive wizard walks you through provider
 
 ```bash
 npx llmrace
+```
+
+Want to compare providers instead of testing just one? Add `--race` with a comma-separated `provider:model` list, and they'll run in parallel on the same prompt:
+
+```bash
+npx llmrace --race groq:openai/gpt-oss-120b,openai:gpt-4o-mini
 ```
 
 ## Installing
@@ -189,13 +189,10 @@ npx llmrace --help
 ```
 
 ```bash
-# Single provider
+# Test a single model
 npx llmrace --provider groq --model openai/gpt-oss-120b
 
-# Race several providers at once
-npx llmrace --race groq:openai/gpt-oss-120b,openai:gpt-4o-mini,anthropic:claude-3-5-haiku-20241022
-
-# Smooth out noise with repeated runs
+# Smooth out noise with repeated runs (median/min/max)
 npx llmrace --provider groq --model openai/gpt-oss-120b --runs 5
 
 # A local OpenAI-compatible server (Ollama, LM Studio, llama.cpp...)
@@ -203,6 +200,9 @@ npx llmrace --provider local --base-url http://localhost:11434/v1 --model llama3
 
 # Machine-readable output for scripts and CI
 npx llmrace --provider groq --model openai/gpt-oss-120b --json
+
+# Optional: race several providers against each other at once
+npx llmrace --race groq:openai/gpt-oss-120b,openai:gpt-4o-mini,anthropic:claude-3-5-haiku-20241022
 ```
 
 Running `npx llmrace` with no flags in an interactive terminal launches a step-by-step wizard instead.
@@ -215,7 +215,7 @@ Running `npx llmrace` with no flags in an interactive terminal launches a step-b
 | `-m, --model <id>` | Model id for a single run |
 | `--base-url <url>` | Required for provider `local` — the OpenAI-compatible endpoint to hit |
 | `--api-key <key>` | Overrides the `<PROVIDER>_API_KEY` env var |
-| `--race <list>` | Comma-separated `provider:model` entries, run in parallel |
+| `--race <list>` | Optional: comma-separated `provider:model` entries to compare, run in parallel instead of `--provider`/`--model` |
 | `--prompt <text>` | Overrides the default benchmark prompt |
 | `--runs <n>` | Repeat the benchmark `n` times and report median/min/max (default `1`) |
 | `--static-prompt` | Send the exact same prompt every run (default: a per-run marker is appended to dodge proxy/gateway response caching) |

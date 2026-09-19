@@ -647,9 +647,9 @@ function printHelp(): void {
   const known = Object.keys(PROVIDERS).sort().join(", ");
   process.stdout.write(`
 Usage:
-  mach1 --provider <id> --model <id> [--base-url <url>] [--api-key <key>]
-  mach1 --race <provider:model,provider:model,...>
-  mach1                  Run with no flags on a terminal to launch the interactive wizard
+  llmrace --provider <id> --model <id> [--base-url <url>] [--api-key <key>]
+  llmrace --race <provider:model,provider:model,...>
+  llmrace                Run with no flags on a terminal to launch the interactive wizard
 
 Options:
   -p, --provider <id>   Provider id for a single run (see below)
@@ -687,10 +687,10 @@ prompt every time instead (e.g. to deliberately measure cache-hit speed).
 Known providers: ${known}
 
 Examples:
-  mach1 --provider local --base-url http://localhost:11434/v1 --model llama3
-  mach1 --provider groq --model llama-3.3-70b-versatile
-  mach1 --race groq:llama-3.3-70b-versatile,local:llama3 --base-url http://localhost:11434/v1
-  mach1 --provider groq --model llama-3.3-70b-versatile --runs 5
+  llmrace --provider local --base-url http://localhost:11434/v1 --model llama3
+  llmrace --provider groq --model llama-3.3-70b-versatile
+  llmrace --provider groq --model llama-3.3-70b-versatile --runs 5
+  llmrace --race groq:llama-3.3-70b-versatile,local:llama3 --base-url http://localhost:11434/v1
 `);
 }
 
@@ -733,7 +733,7 @@ async function main(): Promise<void> {
     }));
   } catch (err) {
     if (isNodeParseError(err) && err.code.startsWith("ERR_PARSE_ARGS")) {
-      process.stderr.write(`${err.message}\nTip: e.g. mach1 --provider groq --model ...\n`);
+      process.stderr.write(`${err.message}\nTip: e.g. llmrace --provider groq --model ...\n`);
     } else {
       process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
     }
